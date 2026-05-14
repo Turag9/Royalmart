@@ -1,277 +1,131 @@
 # Royalmart Backend API
 
-A production-ready RESTful API for the Royalmart e-commerce platform built with Express.js, Prisma ORM, and PostgreSQL.
+Production-ready REST API for the Royalmart e-commerce platform. The backend is built with Express, Prisma, PostgreSQL, JWT authentication, and role-based admin access.
+
+## Live API
+
+- Health check: `https://royalmart-backend.vercel.app/api/health`
+- Base URL: `https://royalmart-backend.vercel.app/api`
+
+## Features
+
+- Customer registration, login, logout, and profile endpoints
+- JWT authentication with secure HTTP-only cookies
+- Admin role protection for dashboard and management routes
+- Product, category, order, review, wishlist, user, and dashboard modules
+- PostgreSQL schema managed through Prisma migrations
+- Production CORS configuration for the deployed frontend
 
 ## Tech Stack
 
-- **Runtime:** Node.js (ES Modules)
-- **Framework:** Express.js
-- **ORM:** Prisma
-- **Database:** PostgreSQL
-- **Authentication:** JWT (httpOnly cookies)
-- **Password Hashing:** bcrypt
-
-## Getting Started
-
-### Prerequisites
-
-- Node.js >= 18
-- PostgreSQL installed and running locally
-
-### Installation
-
-```bash
-# Install dependencies
-npm install
-
-# Set up environment variables
-cp .env.example .env
-# Edit .env with your database credentials
-
-# Run database migrations
-npm run db:migrate
-
-# Seed the database with sample data
-npm run db:seed
-
-# Start development server
-npm run dev
-```
-
-The server will start at `http://localhost:5000`
-
-### Environment Variables
-
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `DATABASE_URL` | PostgreSQL connection string | — |
-| `JWT_SECRET` | Secret key for JWT signing | — |
-| `JWT_EXPIRES_IN` | Token expiration duration | `7d` |
-| `PORT` | Server port | `5000` |
-| `CORS_ORIGIN` | Allowed frontend origin | `http://localhost:5173` |
+- Node.js
+- Express.js
+- Prisma ORM
+- PostgreSQL
+- JSON Web Tokens
+- bcrypt
+- Vercel Serverless Functions
 
 ## Project Structure
 
-```
-src/
-├── config/
-│   └── db.js              # Prisma client instance
-├── middleware/
-│   ├── auth.js            # JWT authentication & role guards
-│   └── errorHandler.js    # Global error handler
-├── modules/
-│   ├── auth/              # Registration, login, logout, profile
-│   ├── products/          # Product CRUD with filtering & pagination
-│   ├── categories/        # Category management
-│   ├── orders/            # Order placement & lifecycle
-│   ├── reviews/           # Product reviews & ratings
-│   ├── wishlist/          # User wishlist management
-│   └── admin/             # Admin dashboard & management
-├── app.js                 # Express app configuration
-└── server.js              # Server entry point
+```text
+Royalmart-Backend/
+|-- api/
+|   `-- index.js              # Vercel serverless entry point
+|-- prisma/
+|   |-- migrations/           # Database migrations
+|   `-- schema.prisma         # Database schema
+|-- src/
+|   |-- config/               # Prisma client
+|   |-- middleware/           # Auth and error middleware
+|   |-- modules/              # Feature modules
+|   |-- app.js                # Express app setup
+|   `-- server.js             # Local server entry point
+|-- package.json
+`-- vercel.json
 ```
 
-## Database Schema
+## Environment Variables
 
-### Models
+Create a `.env` file locally:
 
-- **User** — Customer and admin accounts with role-based access
-- **Product** — Store products with pricing, stock, and media
-- **ProductVariant** — Size/color variants with individual stock tracking
-- **Category** — Hierarchical product categories
-- **Order** — Customer orders with status tracking
-- **OrderItem** — Individual items within an order
-- **Review** — Product ratings and comments
-- **Wishlist** — User's saved products
-- **Address** — Multiple saved shipping addresses per user
-
-### Entity Relationships
-
-```
-User ──┬── Orders ──── OrderItems ──── Product
-       ├── Reviews ────────────────── Product
-       ├── Wishlist ───────────────── Product
-       └── Addresses
-
-Product ──┬── ProductVariants
-          ├── Reviews
-          └── Category
+```env
+DATABASE_URL="postgresql://username:password@localhost:5432/royalmart?schema=public"
+JWT_SECRET="your-long-random-secret"
+JWT_EXPIRES_IN="7d"
+PORT=5000
+CORS_ORIGIN="http://localhost:5173"
+NODE_ENV="development"
+ADMIN_EMAIL="admin@example.com"
+ADMIN_PASSWORD="change-this-password"
 ```
 
-## API Reference
+For production, set these in the hosting dashboard:
 
-### Authentication
-
-All protected routes require a valid JWT cookie (automatically set on login/register).
-
-| Method | Endpoint | Auth | Description |
-|--------|----------|------|-------------|
-| POST | `/api/auth/register` | No | Create new account |
-| POST | `/api/auth/login` | No | Login and receive token |
-| POST | `/api/auth/logout` | No | Clear auth cookie |
-| GET | `/api/auth/profile` | Yes | Get current user profile |
-
-**Register Request:**
-```json
-{
-  "firstName": "John",
-  "lastName": "Doe",
-  "email": "john@example.com",
-  "password": "securepassword"
-}
+```env
+DATABASE_URL="your-production-postgres-url"
+JWT_SECRET="your-production-jwt-secret"
+JWT_EXPIRES_IN="7d"
+CORS_ORIGIN="https://royalmart-frontend.vercel.app"
+NODE_ENV="production"
 ```
 
-**Login Request:**
-```json
-{
-  "email": "john@example.com",
-  "password": "securepassword"
-}
+`ADMIN_EMAIL` and `ADMIN_PASSWORD` are only required when running `npm run db:seed`.
+
+## Local Development
+
+```bash
+npm install
+npm run db:migrate
+npm run dev
 ```
 
-### Products
+The API will run on:
 
-| Method | Endpoint | Auth | Description |
-|--------|----------|------|-------------|
-| GET | `/api/products` | No | List products (paginated) |
-| GET | `/api/products/:id` | No | Get single product with reviews |
-| POST | `/api/products` | Admin | Create product |
-| PUT | `/api/products/:id` | Admin | Update product |
-| DELETE | `/api/products/:id` | Admin | Delete product |
-
-**Query Parameters for listing:**
-
-| Param | Type | Description |
-|-------|------|-------------|
-| `page` | number | Page number (default: 1) |
-| `limit` | number | Items per page (default: 20) |
-| `search` | string | Search by title |
-| `category` | string | Filter by category slug (comma-separated) |
-| `brand` | string | Filter by brand (comma-separated) |
-| `minPrice` | number | Minimum price filter |
-| `maxPrice` | number | Maximum price filter |
-| `sort` | string | `price_asc`, `price_desc`, or `rating` |
-
-### Categories
-
-| Method | Endpoint | Auth | Description |
-|--------|----------|------|-------------|
-| GET | `/api/categories` | No | List all categories with product count |
-| POST | `/api/categories` | Admin | Create category |
-| PUT | `/api/categories/:id` | Admin | Update category |
-| DELETE | `/api/categories/:id` | Admin | Delete category |
-
-### Orders
-
-| Method | Endpoint | Auth | Description |
-|--------|----------|------|-------------|
-| POST | `/api/orders/customer` | Yes | Place a new order |
-| GET | `/api/orders/my-orders` | Yes | Get user's order history |
-| PATCH | `/api/orders/cancel/:orderNumber` | Yes | Cancel an order |
-| DELETE | `/api/orders/remove/:orderNumber` | Yes | Remove order from history |
-| PATCH | `/api/orders/status/:id` | Admin | Update order status |
-
-**Place Order Request:**
-```json
-{
-  "totalAmount": 1299.99,
-  "paymentMethod": "cod",
-  "shippingAddress": {
-    "address": "123 Main St",
-    "city": "Dhaka",
-    "area": "Mirpur"
-  },
-  "itemsSummary": "iPhone Case, USB Cable"
-}
+```text
+http://localhost:5000/api
 ```
 
-**Order Statuses:** `pending` → `confirmed` → `shipped` → `delivered` | `cancelled`
+## Available Scripts
 
-### Reviews
-
-| Method | Endpoint | Auth | Description |
-|--------|----------|------|-------------|
-| GET | `/api/reviews/product/:productId` | No | Get reviews for a product |
-| POST | `/api/reviews` | Yes | Add a review |
-
-**Add Review Request:**
-```json
-{
-  "productId": "uuid-here",
-  "rating": 5,
-  "comment": "Excellent product!"
-}
+```bash
+npm run dev        # Start local development server
+npm run build      # Generate Prisma client
+npm start          # Run migrations and start production server
+npm run db:migrate # Create/apply local migrations
+npm run db:seed    # Seed sample data
+npm run db:reset   # Reset local database
 ```
 
-### Wishlist
-
-| Method | Endpoint | Auth | Description |
-|--------|----------|------|-------------|
-| GET | `/api/wishlist` | Yes | Get user's wishlist |
-| POST | `/api/wishlist/toggle` | Yes | Add/remove from wishlist |
-| DELETE | `/api/wishlist/:productId` | Yes | Remove from wishlist |
-
-### Admin
-
-All admin routes require authentication with `ADMIN` role.
+## API Overview
 
 | Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/admin/dashboard` | Dashboard stats (users, products, orders, revenue) |
-| GET | `/api/admin/users` | List all users |
-| GET | `/api/admin/orders` | List all orders |
-| PATCH | `/api/admin/orders/:id/status` | Update order status |
-| DELETE | `/api/admin/users/:id` | Delete a user |
+| --- | --- | --- |
+| GET | `/api/health` | API health check |
+| POST | `/api/auth/register` | Create a customer account |
+| POST | `/api/auth/login` | Login and set auth cookie |
+| POST | `/api/auth/logout` | Clear auth cookie |
+| GET | `/api/auth/profile` | Get current authenticated user |
+| GET | `/api/products` | List products |
+| GET | `/api/products/:id` | Get product details |
+| GET | `/api/categories` | List categories |
+| POST | `/api/orders/customer` | Place an order |
+| GET | `/api/orders/my-orders` | Get customer orders |
+| GET | `/api/wishlist` | Get customer wishlist |
+| GET | `/api/dashboard` | Admin dashboard data |
 
-## Payment Methods
+## Deployment
 
-| Code | Description |
-|------|-------------|
-| `cod` | Cash on Delivery |
-| `bkash` | bKash Mobile Banking |
-| `nagad` | Nagad Mobile Banking |
-| `rocket` | Rocket Mobile Banking |
-| `card` | Credit/Debit Card |
-| `bank` | Bank Transfer |
+The backend is deployed to Vercel as a Node serverless function.
 
-## Scripts
+Important deployment files:
 
-| Command | Description |
-|---------|-------------|
-| `npm run dev` | Start development server with auto-reload |
-| `npm start` | Start production server |
-| `npm run db:migrate` | Run Prisma migrations |
-| `npm run db:seed` | Seed database with sample data |
-| `npm run db:reset` | Reset database (drops all data) |
+- `api/index.js` exports the Express app for Vercel.
+- `vercel.json` routes all requests to the serverless API entry.
+- `postinstall` runs `prisma generate` so the Prisma client is available in the deployed bundle.
 
-## Error Handling
+## Security Notes
 
-All errors follow a consistent response format:
-
-```json
-{
-  "success": false,
-  "message": "Description of what went wrong"
-}
-```
-
-Successful responses:
-
-```json
-{
-  "success": true,
-  "data": { ... }
-}
-```
-
-## Security Features
-
-- Passwords hashed with bcrypt (10 salt rounds)
-- JWT stored in httpOnly cookies (not accessible via JavaScript)
-- CORS configured for specific frontend origin
-- Role-based access control (USER / ADMIN)
-- Input validation on all endpoints
-
-## License
-
-MIT
+- Do not commit `.env`, `.env.local`, `.vercel`, or database credentials.
+- Use a long random value for `JWT_SECRET`.
+- Keep `CORS_ORIGIN` limited to the production frontend URL.

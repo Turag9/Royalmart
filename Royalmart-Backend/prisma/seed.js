@@ -7,66 +7,63 @@ import { fileURLToPath } from 'url';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const prisma = new PrismaClient();
 
+async function hashPassword(password) {
+  return bcrypt.hash(String(password), 10);
+}
+
 async function main() {
-  console.log('🌱 Seeding database...');
+  console.log('Seeding database...');
 
-  // 1. Create admin user
-  const adminPassword = await bcrypt.hash('Mdturag 833250', 10);
-  await prisma.user.upsert({
-    where: { email: 'musabbirturag9@gmail.com' },
-    update: {},
-    create: {
-      firstName: 'Musabbir',
-      lastName: 'Turag',
-      email: 'musabbirturag9@gmail.com',
-      password: adminPassword,
-      role: 'ADMIN',
-    },
-  });
-  console.log('✅ Admin user created');
+  if (process.env.ADMIN_EMAIL && process.env.ADMIN_PASSWORD) {
+    const adminPassword = await hashPassword(process.env.ADMIN_PASSWORD);
+    await prisma.user.upsert({
+      where: { email: process.env.ADMIN_EMAIL.toLowerCase() },
+      update: { password: adminPassword, role: 'ADMIN' },
+      create: {
+        firstName: process.env.ADMIN_FIRST_NAME || 'Admin',
+        lastName: process.env.ADMIN_LAST_NAME || null,
+        email: process.env.ADMIN_EMAIL.toLowerCase(),
+        password: adminPassword,
+        role: 'ADMIN',
+      },
+    });
+    console.log('Admin user seeded');
+  } else {
+    console.log('ADMIN_EMAIL or ADMIN_PASSWORD missing, skipping admin seed');
+  }
 
-  // 2. Seed users from users.json
   const usersPath = resolve(__dirname, '../../users.json');
   if (!existsSync(usersPath)) {
-    console.log('⚠️  users.json not found, skipping user seed');
+    console.log('users.json not found, skipping user seed');
   } else {
     const usersRaw = JSON.parse(readFileSync(usersPath, 'utf-8'));
-    const usersData = usersRaw.slice(0, 50).map((u) => ({
-      id: u.id,
-      firstName: u.first_name,
-      lastName: u.last_name,
-      email: u.email,
-      password: u.password,
-      phone: u.phone || null,
-    }));
+    const usersData = usersRaw.slice(0, 50);
 
-    for (const u of usersData) {
+    for (const sourceUser of usersData) {
+      const password = await hashPassword(sourceUser.password || 'password123');
       await prisma.user.upsert({
-        where: { email: u.email },
+        where: { email: sourceUser.email.toLowerCase() },
         update: {},
-        create: u,
+        create: {
+          id: sourceUser.id,
+          firstName: sourceUser.first_name,
+          lastName: sourceUser.last_name,
+          email: sourceUser.email.toLowerCase(),
+          password,
+          phone: sourceUser.phone || null,
+        },
       });
     }
     console.log(`✅ ${usersData.length} users seeded`);
   }
 
-  // 3. Seed products and categories from products.json
   const productsPath = resolve(__dirname, '../../products.json');
   if (!existsSync(productsPath)) {
-    console.log('⚠️  products.json not found, skipping product seed');
+    console.log('products.json not found, skipping product seed');
   } else {
     const productsRaw = JSON.parse(readFileSync(productsPath, 'utf-8'));
     const products = productsRaw.products;
 
-  // 3. Seed products and categories from products.json
-  const productsPath = resolve(__dirname, '../../products.json');
-  if (!existsSync(productsPath)) {
-    console.log('⚠️  products.json not found, skipping product seed');
-  } else {
-    const productsRaw = JSON.parse(readFileSync(productsPath, 'utf-8'));
-    const products = productsRaw.products;
-
-    // Extract unique categories
     const categoryNames = [...new Set(products.map((p) => p.category))];
     const categoryMap = {};
 
@@ -81,7 +78,6 @@ async function main() {
     }
     console.log(`✅ ${categoryNames.length} categories seeded`);
 
-    // Seed products
     for (const p of products) {
       await prisma.product.upsert({
         where: { sku: p.sku || `SKU-${p.id}` },
@@ -103,24 +99,24 @@ async function main() {
     }
     console.log(`✅ ${products.length} products seeded`);
 
-    // 4. Seed reviews from products.json
     const allUsers = await prisma.user.findMany({ take: 50 });
     const allProducts = await prisma.product.findMany();
 
     let reviewCount = 0;
-    for (const p of products) {
-      if (!p.reviews?.length) continue;
-      const dbProduct = allProducts.find((dp) => dp.sku === (p.sku || `SKU-${p.id}`));
+    for (const product of products) {
+      if (!product.reviews?.length || !allUsers.length) continue;
+
+      const dbProduct = allProducts.find((dp) => dp.sku === (product.sku || `SKU-${product.id}`));
       if (!dbProduct) continue;
 
-      for (const r of p.reviews) {
+      for (const review of product.reviews) {
         const randomUser = allUsers[Math.floor(Math.random() * allUsers.length)];
         await prisma.review.create({
           data: {
             productId: dbProduct.id,
             userId: randomUser.id,
-            rating: r.rating,
-            comment: r.comment,
+            rating: review.rating,
+            comment: review.comment,
           },
         });
         reviewCount++;
@@ -129,7 +125,7 @@ async function main() {
     console.log(`✅ ${reviewCount} reviews seeded`);
   }
 
-  console.log('🎉 Seeding complete!');
+  console.log('Seeding complete!');
 }
 
 main()

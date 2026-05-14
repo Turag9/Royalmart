@@ -4,6 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "node --watch src/server.js",
+    "postinstall": "prisma generate",
     "start": "npx prisma migrate deploy && node src/server.js",
     "build": "npx prisma generate",
     "db:migrate": "npx prisma migrate dev",
