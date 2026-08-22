@@ -35,6 +35,7 @@ model User {
   orders    Order[]
   reviews   Review[]
   wishlists Wishlist[]
+  carts     Cart[]
   addresses Address[]
 }
 
@@ -43,7 +44,7 @@ model Category {
   name     String     @unique
   slug     String     @unique
   parentId String?
-  parent   Category?  @relation("CategoryTree", fields: [parentId], references: [id])
+  parent   Category?  @relation("CategoryTree", fields: [parentId], references: [id], onDelete: SetNull)
   children Category[] @relation("CategoryTree")
   products Product[]
 }
@@ -61,14 +62,18 @@ model Product {
   images             String[] @default([])
   stock              Int      @default(0)
   categoryId         String?
-  category           Category? @relation(fields: [categoryId], references: [id])
+  category           Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 
   variants   ProductVariant[]
   reviews    Review[]
-  wishlists  Wishlist[]
   orderItems OrderItem[]
+
+  @@index([categoryId])
+  @@index([brand])
+  @@index([price])
+  @@index([createdAt])
 }
 
 model ProductVariant {
@@ -81,22 +86,28 @@ model ProductVariant {
   priceOverride Float?
 
   orderItems OrderItem[]
+
+  @@index([productId])
 }
 
 model Order {
   id              String      @id @default(uuid())
   orderNumber     String      @unique @default(uuid())
   userId          String
-  user            User        @relation(fields: [userId], references: [id])
+  user            User        @relation(fields: [userId], references: [id], onDelete: Restrict)
   totalAmount     Float
   paymentMethod   String
   status          OrderStatus @default(pending)
   shippingAddress Json?
+  itemsSnapshot   Json?
   notes           String?
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
 
   items OrderItem[]
+
+  @@index([userId, createdAt])
+  @@index([status])
 }
 
 model OrderItem {
@@ -104,11 +115,14 @@ model OrderItem {
   orderId   String
   order     Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
   productId String
-  product   Product         @relation(fields: [productId], references: [id])
+  product   Product         @relation(fields: [productId], references: [id], onDelete: Restrict)
   variantId String?
-  variant   ProductVariant? @relation(fields: [variantId], references: [id])
+  variant   ProductVariant? @relation(fields: [variantId], references: [id], onDelete: SetNull)
   quantity  Int             @default(1)
   price     Float
+
+  @@index([orderId])
+  @@index([productId])
 }
 
 model Review {
@@ -116,27 +130,43 @@ model Review {
   productId String
   product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
   userId    String
-  user      User     @relation(fields: [userId], references: [id])
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   rating    Int
   comment   String?
   createdAt DateTime @default(now())
+
+  @@index([productId])
+  @@index([userId])
 }
 
 model Wishlist {
   id        String   @id @default(uuid())
   userId    String
-  user      User     @relation(fields: [userId], references: [id])
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   productId String
-  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
 
   @@unique([userId, productId])
+  @@index([userId])
+}
+
+model Cart {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  productId String
+  quantity  Int      @default(1)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, productId])
+  @@index([userId])
 }
 
 model Address {
   id        String   @id @default(uuid())
   userId    String
-  user      User     @relation(fields: [userId], references: [id])
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   label     String?
   address   String
   city      String?
@@ -144,4 +174,6 @@ model Address {
   phone     String?
   isDefault Boolean  @default(false)
   createdAt DateTime @default(now())
+
+  @@index([userId])
 }

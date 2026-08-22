@@ -14,7 +14,7 @@ export default function CheckoutPage() {
   useDocumentTitle('Royal Mart — Checkout');
 
   const navigate = useNavigate();
-  const { cart, user, placeOrder } = useStore();
+  const { cart, user, placeOrder, setToast } = useStore();
   const [checkoutItems, setCheckoutItems] = useState(null);
   const [paymentMethod, setPaymentMethod] = useState('cod');
   const [cardDetails, setCardDetails] = useState({
@@ -22,6 +22,7 @@ export default function CheckoutPage() {
     expiry: '',
     cvv: ''
   });
+  const [isPlacing, setIsPlacing] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -31,14 +32,12 @@ export default function CheckoutPage() {
         setCheckoutItems([]);
         return;
       }
-
+      // Parallel fetch — failed items are skipped.
       const results = await Promise.all(cart.map((id) => resolveCheckoutProduct(id)));
-      // If one item fails to load, we still show the rest instead of breaking checkout.
       if (active) setCheckoutItems(results.filter(Boolean));
     }
 
     loadCheckoutItems();
-
     return () => {
       active = false;
     };
@@ -51,14 +50,13 @@ export default function CheckoutPage() {
 
   async function handleConfirmOrder() {
     if (!checkoutItems?.length) {
-      window.alert('Your bag is empty!');
+      setToast('Your bag is empty');
       return;
     }
 
     if (paymentMethod === 'card') {
-      // Light validation is enough here, we just want to stop obviously incomplete submissions.
       if (!cardDetails.number.trim() || !cardDetails.expiry.trim() || !cardDetails.cvv.trim()) {
-        window.alert('Please fill in all card details.');
+        setToast('Please fill in all card details');
         return;
       }
     }
@@ -69,7 +67,15 @@ export default function CheckoutPage() {
       id: `RM${Date.now().toString(36).toUpperCase()}`,
       date: new Date().toISOString(),
       status: 'PENDING',
-      items: checkoutItems.map((item) => ({ name: item.name, price: item.price })),
+      // Send full item details so the server can recompute the total and
+      // store an itemsSnapshot for order history.
+      items: checkoutItems.map((item) => ({
+        productId: item.id,
+        name: item.name,
+        price: item.price,
+        quantity: 1,
+        image: item.image
+      })),
       total,
       paymentMethod,
       itemCount: checkoutItems.length,
@@ -77,7 +83,9 @@ export default function CheckoutPage() {
       paymentMethodCode: PAYMENT_MAP[paymentMethod] || 'COD'
     };
 
+    setIsPlacing(true);
     await placeOrder(order);
+    setIsPlacing(false);
     navigate(ROUTES.orderSuccess);
   }
 
@@ -248,10 +256,10 @@ export default function CheckoutPage() {
             className="btn-confirm-order"
             id="btn-confirm"
             onClick={handleConfirmOrder}
-            disabled={checkoutItems ? checkoutItems.length === 0 : false}
+            disabled={isPlacing || (checkoutItems ? checkoutItems.length === 0 : false)}
           >
             <span className="material-symbols-outlined">lock</span>
-            CONFIRM ORDER
+            {isPlacing ? 'PLACING ORDER...' : 'CONFIRM ORDER'}
           </button>
 
           <p className="checkout-secure">

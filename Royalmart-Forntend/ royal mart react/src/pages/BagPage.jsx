@@ -12,23 +12,19 @@ export default function BagPage() {
   useDocumentTitle('Royal Mart — Your Bag');
 
   const navigate = useNavigate();
-  const { cart, removeFromCart } = useStore();
+  const { cart, removeFromCart, setToast } = useStore();
   const [bagItems, setBagItems] = useState([]);
 
   useEffect(() => {
     let active = true;
 
     async function loadBag() {
-      const resolved = [];
-      for (const id of cart) {
-        const product = await resolveCatalogProduct(id);
-        if (product) resolved.push(product);
-      }
+      // Fetch all products in parallel — way faster than the old sequential loop.
+      const resolved = (await Promise.all(cart.map(resolveCatalogProduct))).filter(Boolean);
       if (active) setBagItems(resolved);
     }
 
     loadBag();
-
     return () => {
       active = false;
     };
@@ -43,7 +39,7 @@ export default function BagPage() {
 
   function handlePlaceOrder() {
     if (!cart.length) {
-      window.alert('Your bag is empty!');
+      setToast('Your bag is empty');
       return;
     }
 

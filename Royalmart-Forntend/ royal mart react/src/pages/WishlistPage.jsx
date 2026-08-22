@@ -21,11 +21,8 @@ export default function WishlistPage() {
         return;
       }
 
-      const resolved = [];
-      for (const id of wishlist) {
-        const product = await resolveCatalogProduct(id);
-        if (product) resolved.push(product);
-      }
+      // Parallel fetch — much faster than the previous sequential loop.
+      const resolved = (await Promise.all(wishlist.map(resolveCatalogProduct))).filter(Boolean);
 
       if (active) setProducts(resolved);
     }

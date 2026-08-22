@@ -1,9 +1,12 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useStore } from '../store/StoreContext';
 import { calcSalePrice, formatPrice, formatRatingCount } from '../utils/helpers';
+import { ROUTES } from '../utils/constants';
 
 export default function ProductCard({ product }) {
-  const { addToCart, toggleWishlist, wishlist } = useStore();
+  const { addToCart, toggleWishlist, wishlist, user, setToast } = useStore();
+  const navigate = useNavigate();
   const [added, setAdded] = useState(false);
   const originalPrice = product.price;
   const discountPct = Math.round(product.discountPercentage);
@@ -13,6 +16,11 @@ export default function ProductCard({ product }) {
   const reviewCount = product.reviews ? product.reviews.length : 0;
 
   function handleAddToCart() {
+    if (!user) {
+      setToast('Please login first');
+      navigate(ROUTES.login);
+      return;
+    }
     addToCart(product.id);
 
     // The button briefly changes text to match the original storefront behavior.

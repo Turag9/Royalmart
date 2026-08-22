@@ -117,7 +117,7 @@ export default function LoginPage() {
               id="login-password"
               placeholder="Enter your password"
               required
-              minLength="4"
+              minLength="8"
               value={loginForm.password}
               onChange={(event) => setLoginForm({ ...loginForm, password: event.target.value })}
             />
@@ -184,12 +184,17 @@ export default function LoginPage() {
               className="form-input"
               type="password"
               id="signup-password"
-              placeholder="Create a password"
+              placeholder="Min 8 chars, include a letter and a number"
               required
-              minLength="4"
+              minLength="8"
+              pattern="(?=.*[A-Za-z])(?=.*\d).{8,}"
+              title="At least 8 characters, including one letter and one number"
               value={signupForm.password}
               onChange={(event) => setSignupForm({ ...signupForm, password: event.target.value })}
             />
+            <small className="form-hint" style={{ color: '#888', fontSize: '0.78rem' }}>
+              Use 8+ characters with at least one letter and one number.
+            </small>
           </div>
           <p className="auth-error" id="signup-error">
             {signupError}

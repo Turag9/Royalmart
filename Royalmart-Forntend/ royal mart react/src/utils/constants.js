@@ -41,17 +41,28 @@ export const CATEGORY_LINKS = [
   }
 ];
 
-// Keeping routes in one place makes navigation easier to follow.
+// Clean SPA URLs. `legacy*` entries exist only so old URLs keep redirecting.
 export const ROUTES = {
   home: '/',
   legacyHome: '/index.html',
-  wishlist: '/pages/wishlist.html',
-  bag: '/pages/bag.html',
-  checkout: '/pages/checkout.html',
-  login: '/pages/login.html',
-  forgotPassword: '/pages/forgot-password.html',
-  profile: '/pages/profile.html',
-  orderSuccess: '/pages/order-success.html'
+  wishlist: '/wishlist',
+  bag: '/bag',
+  checkout: '/checkout',
+  login: '/login',
+  forgotPassword: '/forgot-password',
+  profile: '/profile',
+  orderSuccess: '/order-success'
+};
+
+// Old static-style URLs that we still 301 to the new ones.
+export const LEGACY_ROUTES = {
+  '/pages/wishlist.html': ROUTES.wishlist,
+  '/pages/bag.html': ROUTES.bag,
+  '/pages/checkout.html': ROUTES.checkout,
+  '/pages/login.html': ROUTES.login,
+  '/pages/forgot-password.html': ROUTES.forgotPassword,
+  '/pages/profile.html': ROUTES.profile,
+  '/pages/order-success.html': ROUTES.orderSuccess
 };
 
 export const CHECKOUT_CONVENIENCE_FEE = 99;
