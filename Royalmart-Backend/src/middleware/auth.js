@@ -7,7 +7,10 @@ import prisma from '../config/db.js';
  * waiting for the token to expire.
  */
 export async function authenticate(req, res, next) {
-  const token = req.cookies?.token;
+  const bearer = req.headers.authorization?.startsWith('Bearer ')
+    ? req.headers.authorization.slice(7)
+    : null;
+  const token = req.cookies?.token || bearer;
   if (!token) return res.status(401).json({ success: false, message: 'Not authenticated' });
 
   let payload;

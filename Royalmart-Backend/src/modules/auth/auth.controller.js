@@ -65,6 +65,7 @@ export async function register(req, res, next) {
 
     res.status(201).json({
       success: true,
+      token,
       data: {
         id: user.id,
         displayName: `${user.firstName} ${user.lastName || ''}`.trim(),
@@ -99,6 +100,7 @@ export async function login(req, res, next) {
 
     res.json({
       success: true,
+      token,
       data: {
         id: user.id,
         displayName: `${user.firstName} ${user.lastName || ''}`.trim(),

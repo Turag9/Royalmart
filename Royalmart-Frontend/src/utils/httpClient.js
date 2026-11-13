@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { attachTokenInterceptors } from './authToken';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
 
@@ -13,6 +14,8 @@ export const httpClient = axios.create({
   withCredentials: true,
   timeout: 15000,
 });
+
+attachTokenInterceptors(httpClient);
 
 const unauthorizedListeners = new Set();
 
