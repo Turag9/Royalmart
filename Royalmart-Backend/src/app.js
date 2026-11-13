@@ -27,7 +27,7 @@ app.use(helmet());
 // falls back to localhost dev origin.
 const allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:5173')
   .split(',')
-  .map((o) => o.trim())
+  .map((o) => o.trim().replace(/^["']|["']$/g, '').replace(/\/+$/, ''))
   .filter(Boolean);
 
 app.use(
@@ -35,7 +35,8 @@ app.use(
     origin(origin, cb) {
       if (!origin) return cb(null, true); // server-to-server, curl, Postman
       if (allowedOrigins.includes(origin)) return cb(null, true);
-      return cb(new Error(`CORS: origin ${origin} not allowed`));
+      console.warn(`CORS blocked origin ${origin}. Allowed: ${allowedOrigins.join(', ')}`);
+      return cb(null, false);
     },
     credentials: true,
   })
