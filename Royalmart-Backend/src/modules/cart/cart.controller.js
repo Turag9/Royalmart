@@ -42,11 +42,15 @@ export async function remove(req, res, next) {
       (await prisma.cart.findFirst({ where: { productId: id, userId: req.user.id } }));
 
     if (!row) {
+      // Already removed (e.g. duplicate request) - treat as success
+      if (clear) {
+        return res.json({ success: true, message: 'Removed from cart', removed: true });
+      }
       return res.status(404).json({ success: false, message: 'Cart item not found' });
     }
 
     if (clear || row.quantity <= 1) {
-      await prisma.cart.delete({ where: { id: row.id } });
+      await prisma.cart.deleteMany({ where: { id: row.id, userId: req.user.id } });
       return res.json({ success: true, message: 'Removed from cart', removed: true });
     }
 
