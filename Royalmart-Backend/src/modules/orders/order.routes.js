@@ -1,33 +1,27 @@
 import { Router } from 'express';
+import * as controller from './order.controller.js';
 import {
-  placeOrder,
-  myOrders,
-  cancelOrder,
-  removeOrder,
-  updateStatus,
-  getAllOrders,
-  adminUpdateOrder,
-  adminCreateOrder,
   PlaceOrderSchema,
   UpdateStatusSchema,
   AdminUpdateOrderSchema,
   AdminCreateOrderSchema,
   ListQuerySchema,
-} from './order.controller.js';
-import { authenticate, adminOnly } from '../../middleware/auth.js';
-import { validateBody, validateQuery } from '../../middleware/validate.js';
+} from './order.validation.js';
+import { authenticate, adminOnly } from '../../middlewares/auth.middleware.js';
+import { validateBody, validateQuery } from '../../middlewares/validate.middleware.js';
 
 const router = Router();
 
-router.get('/', authenticate, adminOnly, validateQuery(ListQuerySchema), getAllOrders);
-router.post('/customer', authenticate, validateBody(PlaceOrderSchema), placeOrder);
-router.get('/my-orders', authenticate, myOrders);
-router.patch('/cancel/:orderNumber', authenticate, cancelOrder);
-router.delete('/remove/:orderNumber', authenticate, removeOrder);
-router.patch('/status/:id', authenticate, adminOnly, validateBody(UpdateStatusSchema), updateStatus);
+// Customer
+router.post('/customer', authenticate, validateBody(PlaceOrderSchema), controller.placeOrder);
+router.get('/my-orders', authenticate, controller.myOrders);
+router.patch('/cancel/:orderNumber', authenticate, controller.cancelOrder);
+router.delete('/remove/:orderNumber', authenticate, controller.removeOrder);
 
-// Admin convenience endpoints used by the admin frontend.
-router.patch('/:id', authenticate, adminOnly, validateBody(AdminUpdateOrderSchema), adminUpdateOrder);
-router.post('/', authenticate, adminOnly, validateBody(AdminCreateOrderSchema), adminCreateOrder);
+// Admin
+router.get('/', authenticate, adminOnly, validateQuery(ListQuerySchema), controller.getAllOrders);
+router.post('/', authenticate, adminOnly, validateBody(AdminCreateOrderSchema), controller.adminCreateOrder);
+router.patch('/status/:id', authenticate, adminOnly, validateBody(UpdateStatusSchema), controller.updateStatus);
+router.patch('/:id', authenticate, adminOnly, validateBody(AdminUpdateOrderSchema), controller.adminUpdateOrder);
 
 export default router;

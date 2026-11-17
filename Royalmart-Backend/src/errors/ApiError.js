@@ -1,0 +1,29 @@
+/**
+ * Operational (expected) error carrying an HTTP status.
+ * Throw it from services; the global error middleware turns it into a response.
+ */
+export class ApiError extends Error {
+  constructor(status, message, details) {
+    super(message);
+    this.name = 'ApiError';
+    this.status = status;
+    this.details = details;
+    Error.captureStackTrace?.(this, this.constructor);
+  }
+
+  static badRequest(message = 'Bad request', details) {
+    return new ApiError(400, message, details);
+  }
+  static unauthorized(message = 'Not authenticated') {
+    return new ApiError(401, message);
+  }
+  static forbidden(message = 'Forbidden') {
+    return new ApiError(403, message);
+  }
+  static notFound(message = 'Not found') {
+    return new ApiError(404, message);
+  }
+  static conflict(message = 'Conflict') {
+    return new ApiError(409, message);
+  }
+}

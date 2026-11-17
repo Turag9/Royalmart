@@ -30,19 +30,22 @@ Production-ready REST API for the Royalmart e-commerce platform. The backend is 
 
 ```text
 Royalmart-Backend/
-|-- api/
-|   `-- index.js              # Vercel serverless entry point
-|-- prisma/
-|   |-- migrations/           # Database migrations
-|   `-- schema.prisma         # Database schema
-|-- src/
-|   |-- config/               # Prisma client
-|   |-- middleware/           # Auth and error middleware
-|   |-- modules/              # Feature modules
-|   |-- app.js                # Express app setup
-|   `-- server.js             # Local server entry point
-|-- package.json
-`-- vercel.json
+|-- api/index.js                 # Vercel serverless entry point
+|-- prisma/                      # schema, migrations, seed
+`-- src/
+    |-- config/                  # env, constants, cors
+    |-- database/prisma.js       # Prisma client singleton
+    |-- errors/ApiError.js       # Custom HTTP error class
+    |-- middlewares/             # auth, validate, rateLimit, error handler
+    |-- utils/                   # asyncHandler, jwt, cookie, slugify
+    |-- routes/index.js          # Mounts all module routers under /api
+    |-- modules/<feature>/       # auth, users, products, categories, orders,
+    |   |-- *.routes.js          #   cart, wishlist, reviews, admin, dashboard
+    |   |-- *.controller.js      # HTTP layer only (req -> service -> res)
+    |   |-- *.service.js         # Business logic + Prisma queries
+    |   `-- *.validation.js      # Zod schemas
+    |-- app.js                   # Express app setup
+    `-- server.js                # Server entry + graceful shutdown
 ```
 
 ## Environment Variables
